@@ -5,9 +5,8 @@ module Sudoku where
 -- {-# LANGUAGE LambdaCase #-}
 
 import Data.List
--- import qualified Data.Vector.Unboxed
 
-{- several test values... appreciation for java sudokuGenGame! -}
+{- several test values -}
 
 testRawBoard1 :: [[Int]]
 testRawBoard1 = [[0,0,8,4,0,0,0,0,6],[0,1,6,8,0,7,0,0,0],[9,4,0,0,6,0,0,0,0],[8,6,0,0,0,4,0,5,0],[0,0,3,0,0,0,6,0,0],[0,5,0,3,0,0,0,9,2],[0,0,0,0,3,0,0,8,5],[0,0,0,7,0,8,4,6,0],[1,0,0,0,0,5,3,0,0]]
@@ -126,7 +125,7 @@ solveSudoku sdk
     | solutionCnt sdk >= 1 = sdk
     | otherwise = solveSudoku $ takeStep sdk
 
-takeStep :: Sudoku -> Sudoku -- this one's hard...
+takeStep :: Sudoku -> Sudoku
 takeStep sdk
     | valid sdk   = let setInfo = minCandInfo $ board sdk
                         candCnt = (\(a,_,_,_) -> a) $ setInfo
@@ -173,7 +172,7 @@ takeStep sdk
                                        , solutionCnt = solutionCnt sdk }
     | otherwise   = undoStep sdk
 
-undoStep :: Sudoku -> Sudoku -- this one's hard... 2
+undoStep :: Sudoku -> Sudoku
 undoStep sdk
     | process sdk /= [] = let brd = board sdk
                               recentStep = head $ process sdk in
@@ -266,7 +265,6 @@ minRowCandInfoRowwise row = globalMin $
           candCntList = zip (map candCnt $ tail $ transpose row) [1..9]
           candCnt cndr = foldl (\n b -> if b then n+1 else n) 0 cndr
 
--- maybe I can make use of minRowInfo function...
 -- transpose, then get minRowCandInfo; ( cnt, Col, num, coli )
 minColumnCandInfo :: Board -> (Int, Area, Int, Int)
 minColumnCandInfo board = (\((a,b),c) -> (a,Column,b,c)) $ globalMin
@@ -308,7 +306,7 @@ sweepPencilMarkRowwise board r = foldl (\brd c -> if head $ brd!!r!!c then erase
 
 ---------------
 
-fixCell :: Board -> Int -> (Int, Int) -> Board -- better than erasePencilMark...
+fixCell :: Board -> Int -> (Int, Int) -> Board
 fixCell brd n (r,c) = erasePencilMark' brd n (r,c) (cellsConnected (r,c))
 
 -- erase marks of the number fixed at (r, c), for all members of connectedCells (r, c);
@@ -347,10 +345,6 @@ unfixCell brd step   = case step of Fixed (n,(r,c)) ->
                                                                  Box -> boxCell !! aix !! cix
                                         in retakePencilMark brd n posIx cell (cellsConnected posIx)
 
-{-
-retakePencilMark :: Board -> (Int, Int) -> Board
-retakePencilMark board (r,c) = retakePencilMark' board (r,c) (getFirstNum $ board !! r !! c) (cellsConnected (r,c))
--}
 retakePencilMark :: Board -> Int -> (Int, Int) -> Cell -> [[Bool]] -> Board
 retakePencilMark [] _ _ _ _ = []
 retakePencilMark _ _ _ _ [] = []
@@ -362,7 +356,7 @@ retakePencilMarkRowwise [] _ _ _ _ = []
 retakePencilMarkRowwise _ _ _ _ [] = []
 retakePencilMarkRowwise (cl:cls) n (r,c) pvCell (cn:cns) = renewedCell : retakePencilMarkRowwise cls n (r,c-1) pvCell cns
     where renewedCell = if      cn           then retakePencilMarkCellwise cl n
-                        else if (r,c)==(0,0) then pvCell -- to be modified...
+                        else if (r,c)==(0,0) then pvCell
                         else                      cl
 
 retakePencilMarkCellwise :: Cell -> Int -> Cell
