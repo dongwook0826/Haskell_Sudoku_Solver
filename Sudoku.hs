@@ -1,12 +1,11 @@
 -- main idea source :
 -- https://dlbeer.co.nz/articles/sudoku.html
-module Sudoku where
 
--- {-# LANGUAGE LambdaCase #-}
+module Sudoku where
 
 import Data.List
 
-{- several test values -}
+{----------- several test values -----------}
 
 testRawBoard1 :: [[Int]]
 testRawBoard1 = [[0,0,8,4,0,0,0,0,6],[0,1,6,8,0,7,0,0,0],[9,4,0,0,6,0,0,0,0],[8,6,0,0,0,4,0,5,0],[0,0,3,0,0,0,6,0,0],[0,5,0,3,0,0,0,9,2],[0,0,0,0,3,0,0,8,5],[0,0,0,7,0,8,4,6,0],[1,0,0,0,0,5,3,0,0]]
@@ -54,7 +53,7 @@ sweepedInvalidTestBoard :: Board
 sweepedInvalidTestBoard = sweepPencilMark invalidTestBoard
 
 
-{- Data type & constants definition -}
+{----------- Data type & constants definition -----------}
 
 data Area = OneCell | Row | Column | Box deriving (Show, Eq, Ord)
 
@@ -101,7 +100,8 @@ boxCell = [[(0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2)],[(0,3),(0,4),
 emptyCell :: Cell
 emptyCell = [False, True, True, True, True, True, True, True, True, True]
 
-{- [[Int]] -> Sudoku parsing function a.k.a. generator -}
+
+{----------- [[Int]] -> Sudoku parsing function a.k.a. generator -----------}
 
 toSudoku :: [[Int]] -> Sudoku
 toSudoku rawl = Sudoku {board = sweepPencilMark $ toBoard rawl, process = [],
@@ -118,6 +118,37 @@ toBoardRowwise (n:ns)
     | otherwise        = emptyCell : toBoardRowwise ns
 
 
+{----------- IO functions -----------}
+
+printBoard :: Board -> IO ()
+printBoard [] = putStrLn ""
+printBoard (row:rows) = do
+    printRow row
+    if (let rix = (-) 8 $ length rows in rix `elem` [2,5]) then do
+        putStrLn "------+-------+------"
+        printBoard rows
+    else printBoard rows
+
+printRow :: [Cell] -> IO ()
+printRow []  = putStrLn ""
+printRow (cl:cls) =
+    if head cl then do
+        putStr . show $ getFirstNum cl
+        putStr " "
+        if (let ind = (-) 8 $ length cls in ind `elem` [2,5]) then do
+            putStr "| "
+            printRow cls
+        else do
+            printRow cls
+    else do
+        putStr "  "
+        if (let ind = (-) 8 $ length cls in ind `elem` [2,5]) then do
+            putStr "| "
+            printRow cls
+        else do
+            printRow cls
+
+
 {----------- Strict solving & supporting functions -----------}
 
 solveSudoku :: Sudoku -> Sudoku
@@ -125,7 +156,7 @@ solveSudoku sdk
     | solutionCnt sdk >= 1 = sdk
     | otherwise = solveSudoku $ takeStep sdk
 
-takeStep :: Sudoku -> Sudoku
+takeStep :: Sudoku -> Sudoku -- this one's hard...
 takeStep sdk
     | valid sdk   = let setInfo = minCandInfo $ board sdk
                         candCnt = (\(a,_,_,_) -> a) $ setInfo
@@ -172,7 +203,7 @@ takeStep sdk
                                        , solutionCnt = solutionCnt sdk }
     | otherwise   = undoStep sdk
 
-undoStep :: Sudoku -> Sudoku
+undoStep :: Sudoku -> Sudoku -- this one's hard... 2
 undoStep sdk
     | process sdk /= [] = let brd = board sdk
                               recentStep = head $ process sdk in
@@ -265,6 +296,7 @@ minRowCandInfoRowwise row = globalMin $
           candCntList = zip (map candCnt $ tail $ transpose row) [1..9]
           candCnt cndr = foldl (\n b -> if b then n+1 else n) 0 cndr
 
+-- maybe I can make use of minRowInfo function...
 -- transpose, then get minRowCandInfo; ( cnt, Col, num, coli )
 minColumnCandInfo :: Board -> (Int, Area, Int, Int)
 minColumnCandInfo board = (\((a,b),c) -> (a,Column,b,c)) $ globalMin
@@ -306,7 +338,7 @@ sweepPencilMarkRowwise board r = foldl (\brd c -> if head $ brd!!r!!c then erase
 
 ---------------
 
-fixCell :: Board -> Int -> (Int, Int) -> Board
+fixCell :: Board -> Int -> (Int, Int) -> Board -- better than erasePencilMark...
 fixCell brd n (r,c) = erasePencilMark' brd n (r,c) (cellsConnected (r,c))
 
 -- erase marks of the number fixed at (r, c), for all members of connectedCells (r, c);
@@ -345,6 +377,10 @@ unfixCell brd step   = case step of Fixed (n,(r,c)) ->
                                                                  Box -> boxCell !! aix !! cix
                                         in retakePencilMark brd n posIx cell (cellsConnected posIx)
 
+{-
+retakePencilMark :: Board -> (Int, Int) -> Board
+retakePencilMark board (r,c) = retakePencilMark' board (r,c) (getFirstNum $ board !! r !! c) (cellsConnected (r,c))
+-}
 retakePencilMark :: Board -> Int -> (Int, Int) -> Cell -> [[Bool]] -> Board
 retakePencilMark [] _ _ _ _ = []
 retakePencilMark _ _ _ _ [] = []
@@ -356,7 +392,7 @@ retakePencilMarkRowwise [] _ _ _ _ = []
 retakePencilMarkRowwise _ _ _ _ [] = []
 retakePencilMarkRowwise (cl:cls) n (r,c) pvCell (cn:cns) = renewedCell : retakePencilMarkRowwise cls n (r,c-1) pvCell cns
     where renewedCell = if      cn           then retakePencilMarkCellwise cl n
-                        else if (r,c)==(0,0) then pvCell
+                        else if (r,c)==(0,0) then pvCell -- to be modified...
                         else                      cl
 
 retakePencilMarkCellwise :: Cell -> Int -> Cell
@@ -391,7 +427,7 @@ connectedCellsGrouped (r, c) = groupBy (\(x1,_) (x2,_) -> x1==x2) $
                                [(r, ci) | ci <- [0..8]] ++ [(ri, c) | ri <- [0..8]] ++ boxCell !! cellBox (r, c)
 
 
-{- utility functions -}
+{----------- utility functions -----------}
 
 splitEvery :: Int -> [a] -> [[a]]
 splitEvery _ [] = []
