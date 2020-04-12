@@ -120,6 +120,22 @@ toBoardRowwise (n:ns)
 
 {----------- IO functions -----------}
 
+printSudoku :: Sudoku -> IO ()
+printSudoku sdk
+    | solutionCnt sdk <= 0 =
+        if valid sdk then do
+            putStrLn "\nParsing complete :\n"
+            printBoard $ board sdk
+        else putStrLn "\nNo valid solution\n"
+    | solutionCnt sdk >= 2 = do
+        putStrLn "\nFound multiple solution :\n"
+        printBoard $ board sdk
+    | otherwise = do -- solutionCnt sdk == 1
+        if valid sdk then do
+            putStrLn "\nOne solution found :\n"
+            printBoard $ board sdk
+        else putStrLn "\nSolution unique\n"
+
 printBoard :: Board -> IO ()
 printBoard [] = putStrLn ""
 printBoard (row:rows) = do
@@ -151,10 +167,29 @@ printRow (cl:cls) =
 
 {----------- Strict solving & supporting functions -----------}
 
+multSolveSudoku :: Sudoku -> Sudoku
+multSolveSudoku sdk
+    | solutionCnt sdk <= 0 = solveSudoku sdk
+    | solutionCnt sdk >= 2 = sdk
+    | otherwise = -- solutionCnt sdk == 1
+            if (length $ process sdk) == 0 && (not $ valid sdk) then sdk
+            else
+                let undoneSdk = Sudoku { board = board sdk
+                                       , process = process sdk
+                                       , valid = False
+                                       , solutionCnt = 0 }
+                    usolveSdk = solveSudoku undoneSdk in
+                Sudoku { board = board usolveSdk
+                       , process = process usolveSdk
+                       , valid = valid usolveSdk
+                       , solutionCnt = solutionCnt usolveSdk + 1 }
+
 solveSudoku :: Sudoku -> Sudoku
 solveSudoku sdk
     | solutionCnt sdk >= 1 = sdk
-    | otherwise = solveSudoku $ takeStep sdk
+    | otherwise = -- solutionCnt sdk == 0
+            if (length $ process sdk) == 0 && (not $ valid sdk) then sdk
+            else solveSudoku $ takeStep sdk
 
 takeStep :: Sudoku -> Sudoku -- this one's hard...
 takeStep sdk
@@ -247,7 +282,10 @@ undoStep sdk
                                                        , process = newStep : (tail $ process sdk)
                                                        , valid = True
                                                        , solutionCnt = solutionCnt sdk }
-    | otherwise = sdk 
+    | otherwise = Sudoku { board = board sdk
+                         , process = []
+                         , valid = False
+                         , solutionCnt = solutionCnt sdk }
     
 
 ---------------
