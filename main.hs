@@ -29,7 +29,7 @@ main =
                     putStrLn "\nLook for multiple solution? (Y/N)"
                     putStr ">>> "
                     choiceLine_ <- getLine
-                    if length choiceLine /= 0 && (toUpper $ head choiceLine) == 'Y' then do
+                    if length choiceLine /= 0 && (toUpper $ head choiceLine_) == 'Y' then do
                         putStrLn "\nFar searching...\n"
                         printSudoku $ multSolveSudoku solution
                     else putStrLn "Stopped searching"
