@@ -25,22 +25,17 @@ main =
             if length choiceLine /= 0 && (toUpper $ head choiceLine) == 'Y' then do
                 putStrLn "\nNow solving...\n"
                 let solution = solveSudoku sudoku in do
-                    printSudoku solution
-                    putStrLn "\nLook for multiple solution? (Y/N)"
-                    putStr ">>> "
-                    choiceLine_ <- getLine
-                    if length choiceLine /= 0 && (toUpper $ head choiceLine_) == 'Y' then do
-                        putStrLn "\nFar searching...\n"
-                        printSudoku $ multSolveSudoku solution
-                    else putStrLn "Stopped searching"
-                    putStrLn "\nHave another puzzle to parse?"
-                    putStr ">>> "
-                    choiceLine1 <- getLine
-                    if length choiceLine1 /= 0 && (toUpper $ head choiceLine1) == 'Y' then do
-                        putStrLn "\nInput the Sudoku puzzle to be parsed, in one 81-letter string!"
-                        solveMain
-                    else do
-                        putStrLn "\nNo more input : thanks for playing!\n"
+                printSudoku solution
+                if not $ valid solution then return ()
+                else multSolveMain solution
+                putStrLn "\nHave another puzzle to solve? (Y/N)"
+                putStr ">>> "
+                choiceLine1 <- getLine
+                if length choiceLine1 /= 0 && (toUpper $ head choiceLine1) == 'Y' then do
+                    putStrLn "\nInput the Sudoku puzzle to be parsed, in one 81-letter string!"
+                    solveMain
+                else do
+                    putStrLn "\nNo more input : thanks for playing!\n"
             else do
                 putStrLn "\nHave another puzzle to parse?"
                 choiceLine2 <- getLine
@@ -54,9 +49,32 @@ main =
         putStrLn "Input the Sudoku puzzle to be parsed, in one 81-letter string!"
         solveMain
 
+
+multSolveMain :: Sudoku -> IO ()
+multSolveMain sdk = do
+    putStrLn "\n Look for multiple solution? (Y/N)"
+    putStr ">>> "
+    choiceLine_ <- getLine
+    if length choiceLine_ /= 0 && (toUpper $ head choiceLine_) == 'Y' then do
+        putStrLn "\nFar searching...\n"
+        let sdkSol = strictSolveSudoku sdk in do
+        printSudoku sdkSol
+        if valid sdkSol then
+            multSolveMain sdkSol
+        else return ()
+    else do
+        putStrLn "Stopped searching"
+        putStr "total "
+        putStrLn $ (show $ solutionCnt sdk) ++ " solutions found\n"
+
+
 {-
+000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
 000000000000003085001020000000507000004000100090000000500000073002010000000040009
 800000000003600000070090200050007000000045700000100030001000068008500010090000400
+005300000800000020070010500400005300010070006003200080060500009004000030000009700
+100007090030020008009600500005300900010080002600004000300000010040000007007000300
 
 043000280250090004800000009000782000080109070000345000500000007700050028068000590 (1451)
 000003096000007403000460010008000062009000100450000300070016000605200000140500000 (1055)
@@ -75,5 +93,5 @@ main =
 000000146000500208000010035020190000003804700000065090260080000509001000831000000 (753)
 007802400000105000900070008010000080708050906030000070600010005000509000004603700 (954)
 007240060900006000006009207045000009700080006200000780604500800000100005020068100 (552)
-040008010910040083000300000800437100030601075006892005000005000560080031080200050 (549)
+040008010910040083000300000800437100030601070006892005000005000560080031080200050 (549)
 -}
