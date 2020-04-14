@@ -128,8 +128,13 @@ printSudoku sdk
             printBoard $ board sdk
         else putStrLn "\nNo valid solution\n"
     | solutionCnt sdk >= 2 = do
-        putStrLn "\nFound multiple solution :\n"
-        printBoard $ board sdk
+        if valid sdk then do
+            putStrLn "\nFound multiple solution :\n"
+            printBoard $ board sdk
+        else do
+            putStrLn "\nNo more solutions"
+            putStr "Total "
+            putStrLn $ (show $ solutionCnt sdk) ++ " solutions found\n"
     | otherwise = do -- solutionCnt sdk == 1
         if valid sdk then do
             putStrLn "\nOne solution found :\n"
@@ -166,6 +171,22 @@ printRow (cl:cls) =
 
 
 {----------- Strict solving & supporting functions -----------}
+
+strictSolveSudoku :: Sudoku -> Sudoku
+strictSolveSudoku sdk
+    | solutionCnt sdk <= 0 = solveSudoku sdk
+    | otherwise = -- solutionCnt sdk >= 1
+            if (length $ process sdk) == 0 && (not $ valid sdk) then sdk
+            else
+                let undoneSdk = Sudoku { board = board sdk
+                                       , process = process sdk
+                                       , valid = False
+                                       , solutionCnt = 0 }
+                    usolveSdk = solveSudoku undoneSdk in
+                Sudoku { board = board usolveSdk
+                       , process = process usolveSdk
+                       , valid = valid usolveSdk
+                       , solutionCnt = solutionCnt usolveSdk + solutionCnt sdk }
 
 multSolveSudoku :: Sudoku -> Sudoku
 multSolveSudoku sdk
